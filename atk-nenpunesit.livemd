@@ -1,0 +1,687 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# ATK - Nënpunësit dhe Punëdhënësit
+
+```elixir
+Mix.install([
+  {:httpoison, "~> 2.0"},
+  {:vega_lite, "~> 0.1.7"},
+  {:kino_vega_lite, "~> 0.1.8"},
+  {:xlsx_reader, "~> 0.6.0"},
+  {:kino, "~> 0.10.0"},
+  {:explorer, "~> 0.6.1"},
+  {:kino_explorer, "~> 0.1.8"}
+])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Load data from ATK Website
+
+```elixir
+alias VegaLite, as: Vl
+alias XlsxReader, as: Xls
+alias Explorer.DataFrame, as: DF
+require Explorer.DataFrame
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Explorer.DataFrame
+```
+
+```elixir
+defmodule Atk do
+  def get_file(url) do
+    %HTTPoison.Response{body: file} = HTTPoison.get!(url, [], ssl: [{:verify, :verify_none}])
+    file
+  end
+
+  def extract_xlsx(file, mapping_fun) do
+    {:ok, package} = Xls.open(file, source: :binary)
+
+    first_sheet =
+      package
+      |> Xls.sheet_names()
+      |> List.first()
+
+    {:ok, [_ | rows]} =
+      package
+      |> Xls.sheet(first_sheet)
+
+    data =
+      rows
+      |> Enum.map(mapping_fun)
+
+    data
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Atk, <<70, 79, 82, 49, 0, 0, 9, ...>>, {:extract_xlsx, 2}}
+```
+
+```elixir
+file_2023 =
+  Atk.get_file("https://www.atk-ks.org/wp-content/uploads/2023/07/Nr_punto_ID-2023.xlsx")
+
+file_2022 =
+  Atk.get_file("https://www.atk-ks.org/wp-content/uploads/2023/07/Nr_punto_ID-2022.xlsx")
+
+data_2023 =
+  Atk.extract_xlsx(file_2023, fn [
+                                   year,
+                                   month,
+                                   desc,
+                                   municipality,
+                                   type,
+                                   employer_cnt,
+                                   employee_cnt
+                                 ] ->
+    %{
+      "year" => year,
+      "month" => month,
+      "date" => %Date{year: Kernel.trunc(year), month: Kernel.trunc(month), day: 1},
+      "sector_desc" => desc,
+      "municipality" => municipality,
+      "type" => type,
+      "employer_cnt" => employer_cnt,
+      "employee_cnt" => employee_cnt
+    }
+  end)
+
+data_2022 =
+  Atk.extract_xlsx(file_2022, fn [
+                                   year,
+                                   month,
+                                   desc,
+                                   municipality,
+                                   type,
+                                   employer_cnt,
+                                   employee_cnt
+                                 ] ->
+    %{
+      "year" => year,
+      "month" => month,
+      "date" => %Date{year: Kernel.trunc(year), month: Kernel.trunc(month), day: 1},
+      "sector_desc" => desc,
+      "municipality" => municipality,
+      "type" => type,
+      "employer_cnt" => employer_cnt,
+      "employee_cnt" => employee_cnt
+    }
+  end)
+
+data = data_2022 ++ data_2023
+data
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 22.0,
+    "employer_cnt" => 2.0,
+    "month" => 1.0,
+    "municipality" => "DECAN",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Organizata Buxhetore",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 11.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "DRAGASH",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Organizata Buxhetore",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 7.0,
+    "employer_cnt" => 3.0,
+    "month" => 1.0,
+    "municipality" => "FERIZAJ",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Individual",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 42.0,
+    "employer_cnt" => 5.0,
+    "month" => 1.0,
+    "municipality" => "FERIZAJ",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "SH.P.K.",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 6.0,
+    "employer_cnt" => 2.0,
+    "month" => 1.0,
+    "municipality" => "FUSHE KOSOVE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Individual",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 1.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "FUSHE KOSOVE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Organizata Buxhetore",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 21.0,
+    "employer_cnt" => 3.0,
+    "month" => 1.0,
+    "municipality" => "FUSHE KOSOVE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "SH.P.K.",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 63.0,
+    "employer_cnt" => 6.0,
+    "month" => 1.0,
+    "municipality" => "GJAKOVE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "OJQ",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 18.0,
+    "employer_cnt" => 4.0,
+    "month" => 1.0,
+    "municipality" => "GJAKOVE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "SH.P.K.",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 4.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "GJILAN",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Individual",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 49.0,
+    "employer_cnt" => 2.0,
+    "month" => 1.0,
+    "municipality" => "GJILAN",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Organizata Buxhetore",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 132.0,
+    "employer_cnt" => 10.0,
+    "month" => 1.0,
+    "municipality" => "GJILAN",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "SH.P.K.",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 3.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "GLLOGOC",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Individual",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 7.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "GRACANICE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Organizata Buxhetore",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 12.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "GRACANICE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "SH.P.K.",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 3.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "HANI I ELEZIT",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Organizata Buxhetore",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 6.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "HANI I ELEZIT",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "SH.P.K.",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 32.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "ISTOG",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Organizata Buxhetore",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 6.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "ISTOG",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "SH.P.K.",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 4.0,
+    "employer_cnt" => 2.0,
+    "month" => 1.0,
+    "municipality" => "KACANIK",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "SH.P.K.",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 1.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "KLINE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Organizata Buxhetore",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 3.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "LIPJAN",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "OJQ",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 1.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "MALISHEVE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Organizata Buxhetore",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 33.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "MITROVICE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "SH.P.K.",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 3.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "NOVOBERDE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Organizata Buxhetore",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 10.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "OBILIQ",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "SH.P.K.",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 1.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "PARTESH",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Individual",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 2.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "PEJE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Individual",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 18.0,
+    "employer_cnt" => 5.0,
+    "month" => 1.0,
+    "municipality" => "PEJE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "SH.P.K.",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 1.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "PODUJEVE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "\tBashkesi Fetare",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 3.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "PODUJEVE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Individual",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 24.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "PODUJEVE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Organizata Buxhetore",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 6.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "PODUJEVE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "SH.P.K.",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 1.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "PRISHTINE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "\tKonsorcium",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 375.0,
+    "employer_cnt" => 6.0,
+    "month" => 1.0,
+    "municipality" => "PRISHTINE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "\tOdat",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 3.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "PRISHTINE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "\tPerfaqesues Fiskal",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 3.0,
+    "employer_cnt" => 2.0,
+    "month" => 1.0,
+    "municipality" => "PRISHTINE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "\tSindikatat",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 1.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "PRISHTINE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Agjension i Huaj Qeveritar",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 9.0,
+    "employer_cnt" => 6.0,
+    "month" => 1.0,
+    "municipality" => "PRISHTINE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Individual",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 145.0,
+    "employer_cnt" => 2.0,
+    "month" => 1.0,
+    "municipality" => "PRISHTINE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Kompani e huaj",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 6.0,
+    "employer_cnt" => 1.0,
+    "month" => 1.0,
+    "municipality" => "PRISHTINE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "OJQ",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 81761.0,
+    "employer_cnt" => 20.0,
+    "month" => 1.0,
+    "municipality" => "PRISHTINE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Organizata Buxhetore",
+    "year" => 2022.0
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 102.0,
+    "employer_cnt" => 2.0,
+    "month" => 1.0,
+    "municipality" => "PRISHTINE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    "type" => "Parti Politike",
+    ...
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 38.0,
+    "employer_cnt" => 4.0,
+    "month" => 1.0,
+    "municipality" => "PRISHTINE",
+    "sector_desc" => "Administrimi publik dhe mbrojtja; Sigurimi social i detyrueshem",
+    ...
+  },
+  %{
+    "date" => ~D[2022-01-01],
+    "employee_cnt" => 2552.0,
+    "employer_cnt" => 48.0,
+    "month" => 1.0,
+    "municipality" => "PRISHTINE",
+    ...
+  },
+  %{"date" => ~D[2022-01-01], "employee_cnt" => 168.0, "employer_cnt" => 1.0, "month" => 1.0, ...},
+  %{"date" => ~D[2022-01-01], "employee_cnt" => 1.0, "employer_cnt" => 1.0, ...},
+  %{"date" => ~D[2022-01-01], "employee_cnt" => 5.0, ...},
+  %{"date" => ~D[2022-01-01], ...},
+  %{...},
+  ...
+]
+```
+
+## Numri i nënpunësve sipas muajve
+
+```elixir
+Vl.new(width: 550, height: 300)
+|> Vl.data_from_values(data)
+# |> Vl.mark(:line, point: true)
+|> Vl.transform(
+  calculate: "datum.type == 'Organizata Buxhetore' ? 'Organizata Buxhetore' : 'Tjera'",
+  as: "subject_type"
+)
+|> Vl.encode_field(:x, "date", title: "Muaji", type: :temporal, time_unit: :yearmonth)
+|> Vl.encode_field(:y, "employee_cnt",
+  aggregate: :sum,
+  type: :quantitative,
+  title: "Numri i nenpunesve"
+)
+|> Vl.layers([
+  Vl.new()
+  |> Vl.mark(:bar)
+  |> Vl.encode_field(:color, "subject_type",
+    type: :nominal,
+    title: "Lloji i subjektit",
+    scale: [
+      domain: ["Organizata Buxhetore", "Tjera"],
+      range: ["#e7ba52", "#9467bd"]
+    ]
+  ),
+  Vl.new()
+  |> Vl.mark(:line, point: true)
+])
+```
+
+## Numri i nënpunësve sipas komunave në Qershor 2023
+
+```elixir
+Vl.new(width: 700, height: 200)
+|> Vl.data_from_values(data)
+|> Vl.transform(filter: "datum.month == 6 && datum.year == 2023")
+|> Vl.transform(
+  aggregate: [[op: :sum, as: "employees_total", field: "employee_cnt"]],
+  groupby: ["municipality"]
+)
+|> Vl.mark(:bar)
+|> Vl.encode_field(:x, "municipality", title: "Komuna", sort: "-y", type: :ordinal)
+|> Vl.encode_field(:y, "employees_total",
+  type: :quantitative,
+  title: "Numri i nenpunesve"
+)
+|> Vl.encode_field(:color, "municipality", title: "Komuna", sort: "-y")
+```
+
+## Numri i nënpunësve sipas tipit të subjektit Qershor 2023
+
+```elixir
+Vl.new(width: 700, height: 500)
+|> Vl.data_from_values(data)
+|> Vl.transform(filter: "datum.month == 6 && datum.year == 2023")
+|> Vl.mark(:arc)
+|> Vl.encode_field(:theta, "employee_cnt", type: :quantitative)
+|> Vl.encode_field(:color, "type", type: :nominal, title: "Lloji i subjektit")
+|> Vl.config(view: [stroke: nil])
+```
+
+## Numri i punëdhenësve sipas muajve
+
+```elixir
+Vl.new(width: 700, height: 300)
+|> Vl.data_from_values(data)
+|> Vl.mark(:bar)
+|> Vl.encode_field(:x, "date", title: "Muaji", type: :temporal, time_unit: :yearmonth)
+|> Vl.encode_field(:y, "employer_cnt", aggregate: :sum, title: "Numri i punedhenesve")
+```
+
+## Numri i punëdhënësve sipas komunave Qershor 2023
+
+```elixir
+Vl.new(width: 700, height: 200)
+|> Vl.data_from_values(data)
+|> Vl.transform(filter: "datum.month == 6 && datum.year == 2023")
+|> Vl.transform(
+  aggregate: [[op: :sum, as: "employers_total", field: "employer_cnt"]],
+  groupby: ["municipality"]
+)
+|> Vl.mark(:bar)
+|> Vl.encode_field(:x, "municipality", title: "Komuna", sort: "-y", type: :ordinal)
+|> Vl.encode_field(:y, "employers_total",
+  type: :quantitative,
+  title: "Numri i punedhenesve"
+)
+|> Vl.encode_field(:color, "municipality", title: "Komuna", sort: "-y")
+```
+
+## Top 10 Komunat
+
+```elixir
+data
+|> DF.new()
+|> DF.group_by("municipality")
+|> DF.summarise(total: sum(employee_cnt))
+|> DF.arrange(desc: total)
+```
